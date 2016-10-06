@@ -1,6 +1,8 @@
 <?php
 
 namespace mhndev\yii2Eav\Traits;
+use mhndev\yii2Eav\Models\Attribute;
+use mhndev\yii2Eav\Models\Value;
 
 /**
  * Class EntityTrait
@@ -8,6 +10,29 @@ namespace mhndev\yii2Eav\Traits;
  */
 trait EntityTrait
 {
+
+
+    /**
+     * @var array
+     */
+    protected static $config;
+
+    /**
+     * @return mixed
+     */
+    abstract function attributes();
+
+
+    /**
+     *
+     */
+    public function init()
+    {
+        parent::init();
+
+        self::$config = include \Yii::getAlias('@app/config/').DIRECTORY_SEPARATOR.'eav.php';
+    }
+
 
     /**
      * @inheritdoc
@@ -78,14 +103,6 @@ trait EntityTrait
     /**
      * @inheritdoc
      */
-    public function attributes()
-    {
-
-    }
-
-    /**
-     * @inheritdoc
-     */
     public function transactions()
     {
         return [];
@@ -99,19 +116,53 @@ trait EntityTrait
 
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function insert($runValidation = true, $attributes = null)
-    {
-
-    }
 
     /**
      * @inheritdoc
      */
     protected function insertInternal($attributes = null)
     {
+        $result = parent::insertInternal($this->attributes());
+
+        if(! $result){
+            return $result;
+
+        }
+
+        else{
+            $dynamicAttributes = array_diff($attributes, $this->attributes());
+
+            if ( self::$config['detect_category']['type'] == 'entity_column' ){
+
+                $column_name = self::$config['detect_category']['entity_column'];
+
+                $column_value = $attributes[$column_name];
+
+                if($attribute = Attribute::findOne(['category'=>$column_value])){
+
+                    foreach ($dynamicAttributes as $attr){
+                        $value = new Value([
+                            'attribute_id' => $attribute->id,
+                            'entity' => static::class,
+                            'entity_id' => '',
+                            'value' => ''
+                        ]);
+                    }
+
+                }
+                else{
+
+                }
+
+
+            } elseif (self::$config['detect_category']['type'] == 'relation' ) {
+
+            } else {
+
+            }
+
+        }
+
 
     }
 
@@ -143,14 +194,6 @@ trait EntityTrait
      * @inheritdoc
      */
     public function equals($record)
-    {
-
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function isTransactional($operation)
     {
 
     }
